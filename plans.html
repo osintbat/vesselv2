@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Plans — Shadon OSINT</title>
+  <link rel="icon" href="https://i.imgur.com/cbKQRDU.jpeg" type="image/jpeg" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #000; --bg2: #0a0a0a; --bg3: #111;
+      --border: rgba(255,255,255,0.07); --border-strong: rgba(255,255,255,0.15);
+      --text: #fff; --muted: rgba(255,255,255,0.4);
+      --font-head: 'Syne', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-mono); min-height: 100vh; }
+    a { text-decoration: none; color: inherit; }
+    .grid-bg {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    nav {
+      position: relative; z-index: 10; padding: 0 2.5rem; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: .6rem; }
+    .nav-logo img { width: 24px; height: 24px; border-radius: 4px; object-fit: cover; }
+    .nav-logo span { font-family: var(--font-head); font-weight: 800; font-size: .95rem; }
+    .nav-badge { font-size: .5rem; letter-spacing: .14em; text-transform: uppercase; padding: .15rem .45rem; border-radius: 3px; background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.5); border: 1px solid var(--border); }
+    .nav-back { font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); transition: color .2s; }
+    .nav-back:hover { color: var(--text); }
+    .container { max-width: 1000px; margin: 0 auto; padding: 0 2rem; }
+    .page-header { text-align: center; padding: 5rem 0 4rem; position: relative; z-index: 10; }
+    .section-tag {
+      display: inline-flex; align-items: center; gap: .5rem;
+      font-size: .58rem; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--muted); border: 1px solid var(--border);
+      background: rgba(255,255,255,0.04); padding: .28rem .75rem; border-radius: 3px;
+      margin-bottom: 1.2rem;
+    }
+    h1 { font-family: var(--font-head); font-weight: 800; font-size: clamp(2.2rem, 5vw, 3.8rem); letter-spacing: -.04em; margin-bottom: 1rem; }
+    .page-sub { font-size: .75rem; color: var(--muted); line-height: 1.9; max-width: 420px; margin: 0 auto; }
+    .plans-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+      position: relative; z-index: 10; margin-bottom: 4rem;
+    }
+    .plan-card { padding: 2.4rem; background: var(--bg2); border-right: 1px solid var(--border); }
+    .plan-card:last-child { border-right: none; }
+    .plan-card.featured { background: var(--bg3); }
+    .plan-tag { font-size: .56rem; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin-bottom: .8rem; }
+    .plan-name { font-family: var(--font-head); font-weight: 800; font-size: 1.5rem; letter-spacing: -.03em; margin-bottom: 1.2rem; }
+    .plan-price { font-family: var(--font-head); font-weight: 800; font-size: 3rem; letter-spacing: -.04em; line-height: 1; }
+    .plan-per { font-size: .65rem; color: var(--muted); margin-top: .3rem; margin-bottom: 1.5rem; }
+    .plan-desc { font-size: .7rem; color: var(--muted); line-height: 1.75; margin-bottom: 1.8rem; min-height: 2.5rem; }
+    .plan-features { list-style: none; display: flex; flex-direction: column; gap: .55rem; margin-bottom: 2rem; }
+    .plan-features li { font-size: .68rem; color: var(--muted); display: flex; align-items: flex-start; gap: .55rem; }
+    .plan-features li .check { color: rgba(255,255,255,0.5); flex-shrink: 0; }
+    .featured .plan-features li .check { color: #fff; }
+    .featured .plan-features li { color: rgba(255,255,255,0.75); }
+    .plan-btn {
+      display: block; width: 100%; padding: .7rem; border-radius: 7px; text-align: center;
+      font-family: var(--font-mono); font-size: .65rem; letter-spacing: .1em; text-transform: uppercase;
+      border: 1px solid var(--border-strong); color: var(--muted); background: transparent; cursor: pointer;
+      transition: all .25s;
+    }
+    .plan-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.4); }
+    .plan-btn.primary { background: #fff; color: #000; border-color: #fff; font-weight: 600; }
+    .plan-btn.primary:hover { background: rgba(255,255,255,0.85); }
+    .divider { width: 100%; height: 1px; background: linear-gradient(90deg, transparent, var(--border-strong), transparent); position: relative; z-index: 10; margin-bottom: 4rem; }
+    .faq { position: relative; z-index: 10; padding-bottom: 5rem; }
+    .faq h2 { font-family: var(--font-head); font-weight: 800; font-size: 1.8rem; letter-spacing: -.03em; margin-bottom: 2rem; }
+    .faq-item { border-top: 1px solid var(--border); padding: 1.2rem 0; cursor: pointer; }
+    .faq-item:last-child { border-bottom: 1px solid var(--border); }
+    .faq-q { display: flex; align-items: center; justify-content: space-between; font-size: .75rem; font-weight: 600; letter-spacing: -.01em; }
+    .faq-icon { font-size: .9rem; color: var(--muted); transition: transform .2s; }
+    .faq-item.open .faq-icon { transform: rotate(45deg); }
+    .faq-a { font-size: .68rem; color: var(--muted); line-height: 1.8; max-height: 0; overflow: hidden; transition: max-height .3s, padding .3s; }
+    .faq-item.open .faq-a { max-height: 200px; padding-top: .8rem; }
+    .payment-note {
+      position: relative; z-index: 10; margin-bottom: 4rem;
+      border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem 2rem;
+      background: var(--bg2); display: flex; align-items: flex-start; gap: 1rem;
+    }
+    .payment-note-icon { flex-shrink: 0; margin-top: .1rem; }
+    .payment-note h3 { font-family: var(--font-head); font-weight: 700; font-size: .9rem; margin-bottom: .4rem; }
+    .payment-note p { font-size: .68rem; color: var(--muted); line-height: 1.75; }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <nav>
+    <div class="nav-logo">
+      <img src="https://i.imgur.com/cbKQRDU.jpeg" alt="Shadon" />
+      <span>Shadon</span>
+      <div class="nav-badge">OSINT</div>
+    </div>
+    <a href="index.html" class="nav-back">← Home</a>
+  </nav>
+
+  <div class="page-header">
+    <div class="container">
+      <div class="section-tag">// Plans & Pricing</div>
+      <h1>Simple, transparent<br/>pricing</h1>
+      <p class="page-sub">Start free, upgrade when you need more power. No hidden fees, cancel anytime.</p>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="plans-grid">
+      <!-- Free -->
+      <div class="plan-card">
+        <div class="plan-tag">// Free tier</div>
+        <div class="plan-name">Free</div>
+        <div class="plan-price">€0</div>
+        <div class="plan-per">/ month — forever free</div>
+        <div class="plan-desc">Perfect for casual users and those getting started with OSINT.</div>
+        <ul class="plan-features">
+          <li><span class="check">—</span> 5 searches per day</li>
+          <li><span class="check">—</span> Email & username lookup</li>
+          <li><span class="check">—</span> Basic breach check</li>
+          <li><span class="check">—</span> Community support</li>
+          <li><span class="check">—</span> No API access</li>
+        </ul>
+        <a href="register.html" class="plan-btn">Get started free</a>
+      </div>
+      <!-- Pro -->
+      <div class="plan-card featured">
+        <div class="plan-tag">// Most popular</div>
+        <div class="plan-name">Pro</div>
+        <div class="plan-price">€27</div>
+        <div class="plan-per">/ month — billed monthly</div>
+        <div class="plan-desc">For investigators and security professionals who need full access.</div>
+        <ul class="plan-features">
+          <li><span class="check">+</span> Unlimited searches</li>
+          <li><span class="check">+</span> Full breach database access</li>
+          <li><span class="check">+</span> Stealer log search</li>
+          <li><span class="check">+</span> IP & domain intelligence</li>
+          <li><span class="check">+</span> Investigation boards</li>
+          <li><span class="check">+</span> API access (1k req/day)</li>
+          <li><span class="check">+</span> Priority support</li>
+        </ul>
+        <a href="https://pay.oxapay.com/19635502" target="_blank" class="plan-btn primary" id="proBuyBtn">Get Pro — €27/mo</a>
+      </div>
+      <!-- Enterprise -->
+      <div class="plan-card">
+        <div class="plan-tag">// Teams & agencies</div>
+        <div class="plan-name">Enterprise</div>
+        <div class="plan-price">Custom</div>
+        <div class="plan-per">/ month — contact us</div>
+        <div class="plan-desc">For teams, agencies and corporate security operations.</div>
+        <ul class="plan-features">
+          <li><span class="check">—</span> Unlimited everything</li>
+          <li><span class="check">—</span> Dedicated infrastructure</li>
+          <li><span class="check">—</span> Bulk API access</li>
+          <li><span class="check">—</span> Custom data sources</li>
+          <li><span class="check">—</span> SLA & compliance docs</li>
+          <li><span class="check">—</span> Dedicated account manager</li>
+        </ul>
+        <a href="mailto:contact@shadon.io" class="plan-btn">Contact us</a>
+      </div>
+    </div>
+
+    <!-- Payment note -->
+    <div class="payment-note">
+      <div class="payment-note-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+      </div>
+      <div>
+        <h3>How Pro activation works</h3>
+        <p>After completing your payment via OxaPay, your account will be automatically upgraded to Pro within a few minutes. Make sure you're logged in before purchasing. If your plan is not updated within 15 minutes, contact us at <strong>support@shadon.io</strong> with your payment transaction ID.</p>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- FAQ -->
+    <div class="faq">
+      <h2>Frequently asked questions</h2>
+      <div class="faq-item">
+        <div class="faq-q">What payment methods are accepted? <span class="faq-icon">+</span></div>
+        <div class="faq-a">Pro subscriptions are processed via OxaPay, which accepts major cryptocurrencies including Bitcoin, Ethereum, USDT, Litecoin, and more. This ensures privacy and fast processing for our users globally.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">When does my Pro plan activate? <span class="faq-icon">+</span></div>
+        <div class="faq-a">Your account is upgraded automatically after payment confirmation, usually within 1–5 minutes. You'll see the Pro badge appear in your dashboard once activated.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Can I cancel anytime? <span class="faq-icon">+</span></div>
+        <div class="faq-a">Yes. Pro is billed monthly and you can cancel anytime. You'll keep access until the end of your billing period. Contact support@shadon.io to cancel.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Is there a free trial for Pro? <span class="faq-icon">+</span></div>
+        <div class="faq-a">We currently don't offer a free trial for Pro, but the Free plan gives you a solid taste of the platform. You can upgrade to Pro anytime from your dashboard.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">What is Shadon for? <span class="faq-icon">+</span></div>
+        <div class="faq-a">Shadon is an OSINT aggregation platform designed for security researchers, penetration testers, journalists, and investigators. It is intended for lawful and ethical use only. Users must comply with applicable laws in their jurisdiction.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // FAQ accordion
+    document.querySelectorAll('.faq-item').forEach(item => {
+      item.addEventListener('click', () => {
+        item.classList.toggle('open');
+      });
+    });
+    // If logged in, attach user ID to payment link
+    const user = JSON.parse(localStorage.getItem('shadon_user') || 'null');
+    if(user) {
+      const btn = document.getElementById('proBuyBtn');
+      btn.href = `https://pay.oxapay.com/19635502?user=${user.id}`;
+    }
+  </script>
+</body>
+</html>

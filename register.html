@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — Shadon OSINT</title>
+  <link rel="icon" href="https://i.imgur.com/cbKQRDU.jpeg" type="image/jpeg" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #000; --bg2: #0a0a0a; --bg3: #111;
+      --border: rgba(255,255,255,0.07); --border-strong: rgba(255,255,255,0.15);
+      --text: #fff; --muted: rgba(255,255,255,0.4);
+      --font-head: 'Syne', sans-serif; --font-mono: 'IBM Plex Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font-mono); min-height: 100vh; display: flex; flex-direction: column; }
+    a { text-decoration: none; color: inherit; }
+    .grid-bg {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background-image: linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+                        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    nav {
+      position: relative; z-index: 10; padding: 0 2.5rem; height: 58px;
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: .6rem; }
+    .nav-logo img { width: 24px; height: 24px; border-radius: 4px; object-fit: cover; }
+    .nav-logo span { font-family: var(--font-head); font-weight: 800; font-size: .95rem; }
+    .nav-back { font-size: .6rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); transition: color .2s; }
+    .nav-back:hover { color: var(--text); }
+    main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 3rem 1rem; position: relative; z-index: 10; }
+    .auth-box {
+      width: 100%; max-width: 420px;
+      border: 1px solid var(--border); border-radius: 12px;
+      background: var(--bg2); padding: 2.5rem;
+      animation: fadeUp .6s cubic-bezier(.16,1,.3,1) both;
+    }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .auth-logo { display: flex; align-items: center; gap: .5rem; margin-bottom: 2rem; }
+    .auth-logo img { width: 28px; height: 28px; border-radius: 5px; object-fit: cover; }
+    .auth-logo span { font-family: var(--font-head); font-weight: 800; font-size: 1.1rem; }
+    h1 { font-family: var(--font-head); font-weight: 800; font-size: 1.6rem; letter-spacing: -.03em; margin-bottom: .5rem; }
+    .auth-sub { font-size: .68rem; color: var(--muted); margin-bottom: 2rem; line-height: 1.7; }
+    .field { margin-bottom: 1rem; }
+    label { display: block; font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: .45rem; }
+    input {
+      width: 100%; background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 6px; color: var(--text); font-family: var(--font-mono); font-size: .8rem;
+      padding: .7rem .9rem; outline: none; transition: border-color .2s;
+    }
+    input:focus { border-color: rgba(255,255,255,0.35); }
+    input::placeholder { color: rgba(255,255,255,0.2); }
+    .submit-btn {
+      width: 100%; padding: .75rem; border-radius: 7px; margin-top: 1.5rem;
+      background: #fff; color: #000; border: none; cursor: pointer;
+      font-family: var(--font-mono); font-size: .72rem; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase; transition: background .2s;
+    }
+    .submit-btn:hover { background: rgba(255,255,255,0.85); }
+    .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .auth-footer { margin-top: 1.5rem; text-align: center; font-size: .64rem; color: var(--muted); }
+    .auth-footer a { color: var(--text); border-bottom: 1px solid var(--border); }
+    .auth-footer a:hover { border-color: rgba(255,255,255,0.4); }
+    .error-msg { font-size: .65rem; color: #ff6b6b; margin-top: .4rem; display: none; }
+    .error-msg.show { display: block; }
+    .success-msg { font-size: .65rem; color: #51cf66; margin-top: .4rem; display: none; }
+    .success-msg.show { display: block; }
+    .plan-badge {
+      display: flex; align-items: center; gap: .5rem; padding: .7rem .9rem;
+      border: 1px solid var(--border); border-radius: 6px; margin-bottom: 1.5rem;
+      background: rgba(255,255,255,0.03); font-size: .65rem; color: var(--muted);
+    }
+    .plan-badge strong { color: var(--text); }
+    .divider-line { height: 1px; background: var(--border); margin: 1.5rem 0; }
+    .terms { font-size: .6rem; color: var(--muted); line-height: 1.6; margin-top: .8rem; }
+    .terms a { color: rgba(255,255,255,0.6); }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <nav>
+    <div class="nav-logo">
+      <img src="https://i.imgur.com/cbKQRDU.jpeg" alt="Shadon" />
+      <span>Shadon</span>
+    </div>
+    <a href="index.html" class="nav-back">← Back to home</a>
+  </nav>
+  <main>
+    <div class="auth-box">
+      <h1>Create account</h1>
+      <p class="auth-sub">Join Shadon and start your first investigation in under 60 seconds.</p>
+      <div class="plan-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>
+        Starting on <strong>Free plan</strong> — 5 searches/day
+      </div>
+      <form id="registerForm">
+        <div class="field">
+          <label>Username</label>
+          <input type="text" id="username" placeholder="johndoe" required />
+          <div class="error-msg" id="usernameError"></div>
+        </div>
+        <div class="field">
+          <label>Email address</label>
+          <input type="email" id="email" placeholder="you@example.com" required />
+          <div class="error-msg" id="emailError"></div>
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="password" placeholder="Min. 8 characters" required />
+          <div class="error-msg" id="passwordError"></div>
+        </div>
+        <div class="field">
+          <label>Confirm password</label>
+          <input type="password" id="confirmPassword" placeholder="Repeat password" required />
+          <div class="error-msg" id="confirmError"></div>
+        </div>
+        <div class="error-msg" id="globalError" style="margin-top:.5rem;"></div>
+        <div class="success-msg" id="successMsg">Account created! Redirecting...</div>
+        <button type="submit" class="submit-btn" id="submitBtn">Create Account →</button>
+        <p class="terms">By registering, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>. Shadon is intended for lawful OSINT and security research only.</p>
+      </form>
+      <div class="divider-line"></div>
+      <p class="auth-footer">Already have an account? <a href="login.html">Sign in</a></p>
+    </div>
+  </main>
+  <script>
+    // Simple in-browser user store (localStorage)
+    document.getElementById('registerForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const username = document.getElementById('username').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const confirmPassword = document.getElementById('confirmPassword').value;
+      const btn = document.getElementById('submitBtn');
+      // Clear errors
+      document.querySelectorAll('.error-msg').forEach(el => el.classList.remove('show'));
+      let valid = true;
+      if(username.length < 3) { showError('usernameError', 'Username must be at least 3 characters'); valid = false; }
+      if(!email.includes('@')) { showError('emailError', 'Enter a valid email address'); valid = false; }
+      if(password.length < 8) { showError('passwordError', 'Password must be at least 8 characters'); valid = false; }
+      if(password !== confirmPassword) { showError('confirmError', 'Passwords do not match'); valid = false; }
+      if(!valid) return;
+      // Check if user exists
+      const users = JSON.parse(localStorage.getItem('shadon_users') || '[]');
+      if(users.find(u => u.email === email)) { showError('globalError', 'An account with this email already exists'); return; }
+      if(users.find(u => u.username === username)) { showError('globalError', 'Username already taken'); return; }
+      btn.disabled = true; btn.textContent = 'Creating account...';
+      // Simulate async
+      await new Promise(r => setTimeout(r, 800));
+      const user = { id: Date.now().toString(), username, email, password: btoa(password), plan: 'free', dailySearches: 0, lastSearchDate: '', createdAt: new Date().toISOString() };
+      users.push(user);
+      localStorage.setItem('shadon_users', JSON.stringify(users));
+      // Auto login
+      const token = btoa(JSON.stringify({ id: user.id, username, email }));
+      localStorage.setItem('shadon_token', token);
+      localStorage.setItem('shadon_user', JSON.stringify(user));
+      document.getElementById('successMsg').classList.add('show');
+      setTimeout(() => window.location.href = 'dashboard.html', 1200);
+    });
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg; el.classList.add('show');
+    }
+    if(localStorage.getItem('shadon_token')) window.location.href = 'dashboard.html';
+  </script>
+</body>
+</html>
