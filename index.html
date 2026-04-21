@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>doxbin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #0b0b0b;
+  --bg2:     #111111;
+  --fg:      #e8e8e8;
+  --muted:   #4a4a4a;
+  --dim:     #252525;
+  --border:  #1c1c1c;
+  --hbg:     #141414;
+  --accent:  #ffffff;
+  --red:     #c0392b;
+  --green:   #27ae60;
+  --pin:     #b8860b;
+  --sidebar: 220px;
+}
+
+html, body { height: 100%; background: var(--bg); color: var(--fg); font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+
+.ic { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; flex-shrink: 0; }
+.ic svg { width: 100%; height: 100%; }
+
+#app { display: flex; flex-direction: column; min-height: 100vh; }
+
+/* TOPBAR */
+#topbar {
+  display: flex; align-items: center; height: 42px;
+  padding: 0 1.2rem; border-bottom: 1px solid var(--border);
+  background: var(--bg); position: sticky; top: 0; z-index: 200;
+  gap: .8rem; flex-shrink: 0;
+}
+.brand {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600; letter-spacing: .2em;
+  text-transform: uppercase; color: var(--accent);
+  cursor: pointer; user-select: none; flex-shrink: 0;
+}
+.brand-mark {
+  width: 20px; height: 20px; border: 1.5px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+}
+.brand-mark svg { width: 11px; height: 11px; }
+.vsep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.top-search {
+  flex: 1; max-width: 320px; display: flex; align-items: center; gap: 6px;
+  background: var(--bg2); border: 1px solid var(--border);
+  padding: 0 8px; height: 26px;
+}
+.top-search input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .04em;
+}
+.top-search input::placeholder { color: var(--muted); }
+.top-nav { display: flex; gap: 3px; margin-left: auto; }
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: transparent; border: 1px solid var(--border);
+  color: var(--muted); font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; letter-spacing: .06em; padding: 4px 10px;
+  cursor: pointer; transition: border-color .1s, color .1s, background .1s;
+  outline: none; -webkit-appearance: none; white-space: nowrap; flex-shrink: 0;
+}
+.btn .ic { width: 12px; height: 12px; }
+.btn:hover  { border-color: #3a3a3a; color: #ccc; background: var(--hbg); }
+.btn:active { border-color: var(--accent); color: var(--accent); }
+.btn.primary { border-color: var(--accent); color: var(--accent); }
+.btn.primary:hover { background: var(--accent); color: var(--bg); }
+.btn.danger  { border-color: var(--red); color: var(--red); }
+.btn.danger:hover { background: var(--red); color: #fff; }
+.btn.t-active { border-color: #3a3a3a; color: var(--fg); background: var(--hbg); }
+.btn.fav-on  { border-color: var(--pin); color: var(--pin); }
+
+/* BODY */
+#body-wrap { display: flex; flex: 1; min-height: 0; }
+
+/* SIDEBAR */
+#sidebar {
+  width: var(--sidebar); flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  position: sticky; top: 42px; height: calc(100vh - 42px);
+  overflow-y: auto; display: flex; flex-direction: column;
+}
+.sb-section { padding: .7rem 0; border-bottom: 1px solid var(--border); }
+.sb-label { font-size: 9px; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); padding: 0 1rem .45rem; }
+.sb-link {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 1rem; color: var(--muted); font-size: 11px;
+  cursor: pointer; transition: color .1s, background .1s; letter-spacing: .04em;
+  border-left: 2px solid transparent;
+}
+.sb-link .ic { width: 13px; height: 13px; }
+.sb-link:hover { color: var(--fg); background: var(--hbg); }
+.sb-link.active { color: var(--fg); border-left-color: var(--accent); background: var(--hbg); }
+.sb-count {
+  margin-left: auto; font-size: 10px; color: var(--dim);
+  background: var(--bg2); border: 1px solid var(--border);
+  padding: 1px 5px; min-width: 24px; text-align: center;
+}
+
+/* MAIN */
+#main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.view { display: none; }
+.view.active { display: block; }
+
+/* HOME */
+.search-bar-wrap {
+  padding: .8rem 1.2rem; border-bottom: 1px solid var(--border);
+  background: var(--bg); display: flex; gap: 6px; align-items: center;
+}
+.search-bar {
+  flex: 1; display: flex; align-items: center; gap: 8px;
+  background: var(--bg2); border: 1px solid var(--border);
+  padding: 0 10px; height: 30px; transition: border-color .1s;
+}
+.search-bar:focus-within { border-color: #333; }
+.search-bar input {
+  flex: 1; background: transparent; border: none; outline: none;
+  color: var(--fg); font-family: 'IBM Plex Mono', monospace; font-size: 12px; letter-spacing: .03em;
+}
+.search-bar input::placeholder { color: var(--muted); }
+.search-bar .ic { color: var(--muted); width: 13px; height: 13px; }
+.search-res { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+
+.sec-block { border-bottom: 1px solid var(--border); }
+.sec-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .5rem 1.2rem; background: var(--bg2); border-bottom: 1px solid var(--border);
+}
+.sec-head-l { display: flex; align-items: center; gap: 7px; }
+.sec-title { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); font-weight: 500; }
+.sec-title.pin-color { color: var(--pin); }
+.sec-badge { font-size: 9px; background: var(--dim); color: var(--muted); padding: 1px 5px; letter-spacing: .04em; }
+
+/* Table */
+.tbl-head {
+  display: grid;
+  grid-template-columns: 2fr .9fr .65fr .5fr .5fr .45fr;
+  gap: .4rem; padding: .35rem 1.2rem;
+  border-bottom: 1px solid var(--border); background: var(--bg);
+}
+.th {
+  font-size: 9px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); display: flex; align-items: center; gap: 3px;
+  user-select: none;
+}
+.th .ic { width: 10px; height: 10px; }
+
+.pr {
+  display: grid;
+  grid-template-columns: 2fr .9fr .65fr .5fr .5fr .45fr;
+  gap: .4rem; padding: .5rem 1.2rem;
+  border-bottom: 1px solid var(--border); align-items: center;
+  cursor: pointer; transition: background .07s;
+}
+.pr:hover { background: var(--hbg); }
+.pr:last-child { border-bottom: none; }
+.pr-ttl { display: flex; align-items: center; gap: 6px; overflow: hidden; }
+.pr-ttl-txt {
+  font-size: 12px; color: var(--fg);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pr-auth { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-date { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.pr-num  { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 3px; }
+.pr-num .ic { width: 11px; height: 11px; }
+.ic-pin svg  { color: var(--pin); }
+.ic-lock svg { color: var(--muted); }
+
+.state-row {
+  padding: 1.8rem 1.2rem; color: var(--muted);
+  font-size: 11px; letter-spacing: .05em;
+  display: flex; align-items: center; gap: 8px;
+}
+.state-row .ic { width: 13px; height: 13px; }
+
+/* NEW PASTE */
+#view-new { display: none; flex-direction: column; height: calc(100vh - 42px); }
+#view-new.active { display: flex; }
+.new-meta {
+  display: flex; gap: 5px; align-items: center; flex-wrap: wrap;
+  padding: .7rem 1.2rem; border-bottom: 1px solid var(--border);
+  background: var(--bg); flex-shrink: 0;
+}
+.mi {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--fg); font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; padding: 4px 8px; outline: none; transition: border-color .1s;
+}
+.mi:focus { border-color: #333; }
+.mi::placeholder { color: var(--muted); }
+.mi.f-title  { flex: 1; min-width: 130px; }
+.mi.f-author { width: 120px; }
+.mi.f-pass   { width: 145px; }
+.toggle-priv { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 11px; cursor: pointer; user-select: none; }
+.toggle-priv input { accent-color: var(--accent); }
+.new-ed-wrap { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+#new-ta {
+  flex: 1; width: 100%; background: var(--bg); color: var(--fg);
+  border: none; outline: none; resize: none;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.75;
+  caret-color: #fff; white-space: pre-wrap; word-break: break-word;
+  tab-size: 4; padding: .9rem 1.2rem;
+}
+#new-ta::placeholder { color: #1c1c1c; }
+#new-ta::selection   { background: #fff; color: #000; }
+.new-status {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .4rem 1.2rem; border-top: 1px solid var(--border);
+  color: var(--muted); font-size: 10px; letter-spacing: .05em;
+  flex-shrink: 0; background: var(--bg);
+}
+.stat-grp { display: flex; gap: 1.2rem; }
+
+/* PASTE VIEW */
+#view-paste { display: none; flex-direction: column; min-height: calc(100vh - 42px); }
+#view-paste.active { display: flex; }
+.pv-hdr {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 1rem; padding: .9rem 1.2rem; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.pv-title { font-size: 15px; font-weight: 500; letter-spacing: .03em; margin-bottom: .3rem; }
+.pv-meta {
+  display: flex; gap: 1rem; font-size: 11px; color: var(--muted);
+  flex-wrap: wrap; align-items: center;
+}
+.pv-meta span { display: flex; align-items: center; gap: 4px; }
+.pv-meta .ic  { width: 11px; height: 11px; }
+.pv-acts { display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0; }
+
+.pv-code-wrap { display: flex; flex: 1; min-height: 0; }
+.pv-lnum {
+  flex-shrink: 0; padding: 1rem .7rem 1rem .9rem;
+  border-right: 1px solid var(--border); color: var(--muted);
+  font-size: 12px; line-height: 1.75; text-align: right;
+  user-select: none; min-width: 42px; background: var(--bg2);
+  overflow: hidden;
+}
+.pv-code {
+  flex: 1; overflow: auto;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px; line-height: 1.75;
+  white-space: pre; color: var(--fg); padding: 1rem 1.2rem; background: var(--bg);
+}
+.pv-code::selection, .pv-code *::selection { background: #fff; color: #000; }
+
+/* Comments */
+.cmt-wrap { border-top: 1px solid var(--border); flex-shrink: 0; }
+.cmt-hdr {
+  display: flex; align-items: center; gap: 7px;
+  padding: .5rem 1.2rem; border-bottom: 1px solid var(--border); background: var(--bg2);
+}
+.cmt-hdr-title { font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted); }
+.cmt-list { display: flex; flex-direction: column; }
+.cmt-item {
+  display: flex; gap: .7rem; padding: .65rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+}
+.cmt-item:last-child { border-bottom: none; }
+.cmt-av {
+  width: 22px; height: 22px; background: var(--dim); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; font-size: 10px; color: var(--muted); font-weight: 600;
+}
+.cmt-body { flex: 1; min-width: 0; }
+.cmt-meta { font-size: 10px; color: var(--muted); margin-bottom: 3px; display: flex; gap: .8rem; }
+.cmt-txt  { font-size: 12px; line-height: 1.6; color: var(--fg); word-break: break-word; }
+.cmt-form {
+  display: flex; gap: 5px; padding: .65rem 1.2rem;
+  border-top: 1px solid var(--border); background: var(--bg2);
+}
+.cmt-form input {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--fg); font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px; padding: 4px 8px; outline: none;
+}
+.cmt-form input:focus { border-color: #333; }
+.cmt-form input::placeholder { color: var(--muted); }
+.cmt-no { padding: .7rem 1.2rem; font-size: 11px; color: var(--muted); }
+
+/* LOCKED */
+#view-locked { display: none; padding: 5rem 2rem; max-width: 360px; margin: 0 auto; }
+#view-locked.active { display: block; }
+.lock-hdr {
+  font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 1rem; display: flex; align-items: center; gap: 7px;
+}
+.lock-form { display: flex; flex-direction: column; gap: 7px; }
+
+/* TOAST */
+#toast {
+  position: fixed; bottom: 1.2rem; right: 1.2rem;
+  background: #fff; color: #000; font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px; letter-spacing: .1em; padding: 5px 13px;
+  pointer-events: none; opacity: 0; transform: translateY(4px);
+  transition: opacity .12s, transform .12s; z-index: 9999;
+}
+#toast.show { opacity: 1; transform: translateY(0); }
+#toast.err  { background: var(--red); color: #fff; }
+#toast.ok   { background: var(--green); color: #000; }
+
+/* LOADER */
+#loader {
+  display: none; position: fixed; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg,transparent,#fff,transparent);
+  animation: ld 1s linear infinite; z-index: 9998;
+}
+#loader.on { display: block; }
+@keyframes ld { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+
+::-webkit-scrollbar { width: 3px; height: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--dim); }
+
+@media(max-width:700px){
+  #sidebar{display:none;}
+  .tbl-head,.pr{grid-template-columns:1fr auto auto;}
+  .tbl-head>*:nth-child(n+4),.pr>*:nth-child(n+4){display:none;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TOPBAR -->
+<header id="topbar">
+  <div class="brand" onclick="goHome()">
+    <div class="brand-mark">
+      <svg viewBox="0 0 12 14" fill="none" stroke="currentColor" stroke-width="1.3">
+        <path d="M1 1h8l2 2v10H1z"/>
+        <path d="M9 1v2h2"/>
+        <line x1="3" y1="5.5" x2="9" y2="5.5"/>
+        <line x1="3" y1="7.5" x2="9" y2="7.5"/>
+        <line x1="3" y1="9.5" x2="6.5" y2="9.5"/>
+      </svg>
+    </div>
+    doxbin
+  </div>
+
+  <div class="vsep"></div>
+
+  <div class="top-search">
+    <span class="ic" style="color:var(--muted);width:13px;height:13px">
+      <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3">
+        <circle cx="6" cy="6" r="4.5"/><line x1="9.5" y1="9.5" x2="13" y2="13"/>
+      </svg>
+    </span>
+    <input id="top-si" type="text" placeholder="search pastes..." oninput="syncSearch(this.value)"/>
+  </div>
+
+  <div class="top-nav">
+    <button class="btn" onclick="goHome()">
+      <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><path d="M1 6.5L7 1l6 5.5"/><path d="M3 5.5V13h3V9h2v4h3V5.5"/></svg></span>
+      home
+    </button>
+    <button class="btn primary" onclick="goNew()">
+      <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="7" y1="2" x2="7" y2="12"/><line x1="2" y1="7" x2="12" y2="7"/></svg></span>
+      new paste
+    </button>
+  </div>
+</header>
+
+<div id="body-wrap">
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-section">
+    <div class="sb-label">browse</div>
+    <div class="sb-link active" id="sl-recent" onclick="setTab('recent')">
+      <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7" cy="7" r="5.5"/><polyline points="7,4 7,7 9.5,8.5"/></svg></span>
+      Recent
+      <span class="sb-count" id="sc-recent">—</span>
+    </div>
+    <div class="sb-link" id="sl-popular" onclick="setTab('popular')">
+      <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 7s2.5-4.5 6-4.5S13 7 13 7s-2.5 4.5-6 4.5S1 7 1 7z"/><circle cx="7" cy="7" r="1.5"/></svg></span>
+      Most Viewed
+      <span class="sb-count" id="sc-popular">—</span>
+    </div>
+    <div class="sb-link" id="sl-commented" onclick="setTab('commented')">
+      <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 1h12v8H8l-3 3v-3H1z"/></svg></span>
+      Most Discussed
+      <span class="sb-count" id="sc-commented">—</span>
+    </div>
+    <div class="sb-link" id="sl-favourited" onclick="setTab('favourited')">
+      <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><polygon points="7,1.5 8.8,5.2 13,5.7 10,8.5 10.8,12.5 7,10.4 3.2,12.5 4,8.5 1,5.7 5.2,5.2"/></svg></span>
+      Most Favourited
+      <span class="sb-count" id="sc-favourited">—</span>
+    </div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">account</div>
+    <div class="sb-link" onclick="toast('Login coming soon')">
+      <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7" cy="4.5" r="2.5"/><path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg></span>
+      Login
+    </div>
+    <div class="sb-link" onclick="toast('Register coming soon')">
+      <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="11" y1="2" x2="11" y2="6"/><line x1="9" y1="4" x2="13" y2="4"/><circle cx="5.5" cy="4.5" r="2.5"/><path d="M1 12.5c0-3 2-5 4.5-5"/></svg></span>
+      Register
+    </div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">info</div>
+    <div class="sb-link" style="cursor:default">
+      <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="1" y="7" width="3" height="6"/><rect x="5.5" y="4" width="3" height="9"/><rect x="10" y="1" width="3" height="12"/></svg></span>
+      Total pastes
+      <span class="sb-count" id="sc-total">—</span>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main id="main">
+
+  <!-- HOME VIEW -->
+  <div id="view-home" class="view active">
+
+    <!-- Search -->
+    <div class="search-bar-wrap">
+      <div class="search-bar">
+        <span class="ic">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3">
+            <circle cx="6" cy="6" r="4.5"/><line x1="9.5" y1="9.5" x2="13" y2="13"/>
+          </svg>
+        </span>
+        <input id="main-si" type="text" placeholder="search all pastes by title or author..." oninput="handleSearch(this.value)"/>
+      </div>
+      <span class="search-res" id="search-res"></span>
+      <button class="btn" onclick="clearSearch()">
+        <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="2" y1="2" x2="12" y2="12"/><line x1="12" y1="2" x2="2" y2="12"/></svg></span>
+        clear
+      </button>
+    </div>
+
+    <!-- Pinned -->
+    <div class="sec-block" id="pinned-section">
+      <div class="sec-head">
+        <div class="sec-head-l">
+          <span class="ic" style="color:var(--pin);width:13px;height:13px">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3">
+              <circle cx="7" cy="5" r="3"/><line x1="7" y1="8" x2="7" y2="13"/>
+              <line x1="4.5" y1="13" x2="9.5" y2="13"/>
+            </svg>
+          </span>
+          <span class="sec-title pin-color">Pinned</span>
+          <span class="sec-badge" id="pinned-badge">0</span>
+        </div>
+      </div>
+      <div class="tbl-head">
+        <span class="th">Title</span>
+        <span class="th">Author</span>
+        <span class="th">Date</span>
+        <span class="th"><span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 7s2.5-4.5 6-4.5S13 7 13 7s-2.5 4.5-6 4.5S1 7 1 7z"/><circle cx="7" cy="7" r="1.5"/></svg></span>&nbsp;Views</span>
+        <span class="th"><span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 1h12v8H8l-3 3v-3H1z"/></svg></span>&nbsp;Cmts</span>
+        <span class="th"><span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><polygon points="7,1.5 8.8,5.2 13,5.7 10,8.5 10.8,12.5 7,10.4 3.2,12.5 4,8.5 1,5.7 5.2,5.2"/></svg></span>&nbsp;Favs</span>
+      </div>
+      <div id="pinned-list">
+        <div class="state-row">
+          <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7" cy="7" r="5.5"/><line x1="7" y1="5" x2="7" y2="7.5"/><circle cx="7" cy="9.5" r=".6" fill="currentColor"/></svg></span>
+          no pinned pastes
+        </div>
+      </div>
+    </div>
+
+    <!-- Main list -->
+    <div class="sec-block">
+      <div class="sec-head">
+        <div class="sec-head-l">
+          <span class="ic" style="color:var(--muted);width:13px;height:13px">
+            <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="7" cy="7" r="5.5"/><polyline points="7,4 7,7 9.5,8.5"/></svg>
+          </span>
+          <span class="sec-title" id="tab-label">Recent Pastes</span>
+          <span class="sec-badge" id="main-badge">0</span>
+        </div>
+        <div style="display:flex;gap:3px">
+          <button class="btn t-active" id="tab-recent"     onclick="setTab('recent')">recent</button>
+          <button class="btn"          id="tab-popular"    onclick="setTab('popular')">views</button>
+          <button class="btn"          id="tab-commented"  onclick="setTab('commented')">comments</button>
+          <button class="btn"          id="tab-favourited" onclick="setTab('favourited')">favs</button>
+        </div>
+      </div>
+      <div class="tbl-head">
+        <span class="th">Title</span>
+        <span class="th">Author</span>
+        <span class="th">Date</span>
+        <span class="th"><span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 7s2.5-4.5 6-4.5S13 7 13 7s-2.5 4.5-6 4.5S1 7 1 7z"/><circle cx="7" cy="7" r="1.5"/></svg></span>&nbsp;Views</span>
+        <span class="th"><span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 1h12v8H8l-3 3v-3H1z"/></svg></span>&nbsp;Cmts</span>
+        <span class="th"><span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><polygon points="7,1.5 8.8,5.2 13,5.7 10,8.5 10.8,12.5 7,10.4 3.2,12.5 4,8.5 1,5.7 5.2,5.2"/></svg></span>&nbsp;Favs</span>
+      </div>
+      <div id="main-list">
+        <div class="state-row">
+          <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7" cy="7" r="5.5"/><polyline points="7,4 7,7 9.5,8.5"/></svg></span>
+          loading...
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /view-home -->
+
+  <!-- NEW PASTE VIEW -->
+  <div id="view-new" class="view">
+    <div class="new-meta">
+      <input class="mi f-title"  id="new-title"  type="text"      placeholder="title (untitled)"       maxlength="200"/>
+      <input class="mi f-author" id="new-author" type="text"      placeholder="author (anon)"           maxlength="60"/>
+      <input class="mi f-pass"   id="new-pass"   type="password"  placeholder="password (optional)"    maxlength="100"/>
+      <label class="toggle-priv">
+        <input type="checkbox" id="new-private">
+        <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="6" width="8" height="7" rx=".5"/><path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6"/></svg></span>
+        private
+      </label>
+      <select class="btn" id="new-expire" style="padding:4px 8px;cursor:pointer">
+        <option value="">no expiry</option>
+        <option value="3600">1 hour</option>
+        <option value="86400">1 day</option>
+        <option value="604800">1 week</option>
+        <option value="2592000">1 month</option>
+      </select>
+      <button class="btn primary" onclick="submitPaste()">
+        <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="2" y1="7" x2="11" y2="7"/><polyline points="8,4 11,7 8,10"/></svg></span>
+        submit
+      </button>
+    </div>
+    <div class="new-ed-wrap">
+      <textarea id="new-ta" placeholder="paste content here..." spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off"></textarea>
+    </div>
+    <div class="new-status">
+      <div class="stat-grp">
+        <span id="e-chars">0 chars</span>
+        <span id="e-words">0 words</span>
+        <span id="e-lines">0 lines</span>
+      </div>
+      <span>— insert —</span>
+    </div>
+  </div>
+
+  <!-- PASTE VIEW -->
+  <div id="view-paste" class="view">
+    <div class="pv-hdr">
+      <div>
+        <div class="pv-title" id="pv-title">untitled</div>
+        <div class="pv-meta">
+          <span>
+            <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7" cy="4.5" r="2.5"/><path d="M1.5 12.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5"/></svg></span>
+            <span id="pv-author">anon</span>
+          </span>
+          <span>
+            <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7" cy="7" r="5.5"/><polyline points="7,4 7,7 9.5,8.5"/></svg></span>
+            <span id="pv-date">—</span>
+          </span>
+          <span>
+            <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 7s2.5-4.5 6-4.5S13 7 13 7s-2.5 4.5-6 4.5S1 7 1 7z"/><circle cx="7" cy="7" r="1.5"/></svg></span>
+            <span id="pv-views">0</span> views
+          </span>
+          <span>
+            <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 1h12v8H8l-3 3v-3H1z"/></svg></span>
+            <span id="pv-cmt-count">0</span> comments
+          </span>
+          <span id="pv-exp-wrap" style="display:none">
+            <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7" cy="7" r="5.5"/><line x1="7" y1="4" x2="7" y2="7"/><line x1="7" y1="7" x2="9" y2="9"/></svg></span>
+            expires <span id="pv-expire">—</span>
+          </span>
+        </div>
+      </div>
+      <div class="pv-acts">
+        <button class="btn" id="fav-btn" onclick="toggleFav()">
+          <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2" id="fav-ic"><polygon points="7,1.5 8.8,5.2 13,5.7 10,8.5 10.8,12.5 7,10.4 3.2,12.5 4,8.5 1,5.7 5.2,5.2"/></svg></span>
+          <span id="fav-count">0</span>
+        </button>
+        <button class="btn" onclick="copyPaste()">
+          <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="4.5" y="4.5" width="8" height="9" rx=".5"/><path d="M2.5 9.5H2a.5.5 0 0 1-.5-.5V2a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5v2"/></svg></span>
+          copy
+        </button>
+        <button class="btn" onclick="rawPaste()">
+          <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><polyline points="3.5,4 1,7 3.5,10"/><polyline points="10.5,4 13,7 10.5,10"/><line x1="8.5" y1="2" x2="5.5" y2="12"/></svg></span>
+          raw
+        </button>
+        <button class="btn" onclick="downloadPaste()">
+          <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="7" y1="1" x2="7" y2="9"/><polyline points="3.5,6 7,9.5 10.5,6"/><line x1="1" y1="13" x2="13" y2="13"/></svg></span>
+          save
+        </button>
+        <button class="btn danger" onclick="deletePaste()">
+          <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><polyline points="2,3.5 12,3.5"/><path d="M5 3.5V2h4v1.5"/><rect x="3" y="3.5" width="8" height="9" rx=".5"/><line x1="5.5" y1="6" x2="5.5" y2="10"/><line x1="8.5" y1="6" x2="8.5" y2="10"/></svg></span>
+          delete
+        </button>
+      </div>
+    </div>
+    <div class="pv-code-wrap">
+      <div class="pv-lnum" id="pv-lnum"></div>
+      <pre class="pv-code" id="pv-code"></pre>
+    </div>
+    <div class="cmt-wrap">
+      <div class="cmt-hdr">
+        <span class="ic" style="color:var(--muted);width:13px;height:13px"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 1h12v8H8l-3 3v-3H1z"/></svg></span>
+        <span class="cmt-hdr-title">Comments</span>
+        <span style="margin-left:8px;font-size:10px;color:var(--muted)" id="cmt-label"></span>
+      </div>
+      <div class="cmt-list" id="cmt-list"></div>
+      <div class="cmt-form">
+        <input id="cmt-name" type="text" placeholder="name (anon)" style="width:115px;flex:none" maxlength="60"/>
+        <input id="cmt-text" type="text" placeholder="leave a comment..." maxlength="500" style="flex:1"/>
+        <button class="btn primary" onclick="submitComment()">
+          <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4"><line x1="2" y1="7" x2="11" y2="7"/><polyline points="8,4 11,7 8,10"/></svg></span>
+          post
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOCKED VIEW -->
+  <div id="view-locked">
+    <div class="lock-hdr">
+      <span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="6" width="8" height="7" rx=".5"/><path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6"/></svg></span>
+      password protected
+    </div>
+    <div class="lock-form">
+      <input class="mi" id="unlock-pass" type="password" placeholder="enter password" style="width:100%"/>
+      <button class="btn primary" onclick="tryUnlock()" style="width:100%;justify-content:center">unlock</button>
+    </div>
+  </div>
+
+</main>
+</div>
+</div>
+
+<div id="toast"></div>
+<div id="loader"></div>
+
+<script>
+// SUPABASE
+const SB_URL = 'https://sqzwbttkjwodkkdemgnb.supabase.co';
+const SB_KEY = 'sb_publishable_EILhamXViLrakou8z0iZcw_hlXkx-3r';
+const { createClient } = supabase;
+const db = createClient(SB_URL, SB_KEY);
+
+// STATE
+let currentPaste = null;
+let currentTab   = 'recent';
+let allPastes    = [];
+let favs         = JSON.parse(localStorage.getItem('dox_favs')||'[]');
+
+// UTILS
+function uid(n=8){
+  const c='abcdefghijklmnopqrstuvwxyz0123456789';
+  return Array.from(crypto.getRandomValues(new Uint8Array(n))).map(b=>c[b%c.length]).join('');
+}
+async function sha256(s){
+  const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function relTime(ts){
+  const d=(Date.now()-new Date(ts))/1000;
+  if(d<60)return 'just now';
+  if(d<3600)return Math.floor(d/60)+'m ago';
+  if(d<86400)return Math.floor(d/3600)+'h ago';
+  if(d<2592000)return Math.floor(d/86400)+'d ago';
+  return new Date(ts).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+function absDate(ts){
+  return new Date(ts).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+// LOADER / TOAST
+function load(on){document.getElementById('loader').className=on?'on':'';}
+let _tt;
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.className=type?`show ${type}`:'show';
+  clearTimeout(_tt); _tt=setTimeout(()=>el.className='',2000);
+}
+
+// VIEWS
+function showView(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-locked').classList.remove('active');
+  const el=document.getElementById('view-'+id);
+  if(el) el.classList.add('active');
+}
+
+// SIDEBAR
+function setSBActive(tab){
+  document.querySelectorAll('.sb-link').forEach(l=>l.classList.remove('active'));
+  const el=document.getElementById('sl-'+tab);
+  if(el) el.classList.add('active');
+}
+
+// HOME
+async function goHome(){
+  history.pushState({},'','/');
+  document.title='doxbin';
+  showView('home');
+  await loadAll();
+}
+
+async function loadAll(){
+  load(true);
+  const {data:pastes,error}=await db
+    .from('pastes')
+    .select('id,title,author,views,created_at,is_private,expires_at,pinned,favourites,password_hash')
+    .eq('is_private',false)
+    .order('created_at',{ascending:false})
+    .limit(200);
+
+  const {data:cAll}=await db.from('comments').select('paste_id');
+  load(false);
+
+  if(error){toast(error.message,'err');return;}
+
+  const ccMap={};
+  if(cAll) cAll.forEach(c=>{ccMap[c.paste_id]=(ccMap[c.paste_id]||0)+1;});
+  allPastes=(pastes||[]).map(p=>({...p,comment_count:ccMap[p.id]||0}));
+
+  document.getElementById('sc-total').textContent=allPastes.length;
+  document.getElementById('sc-recent').textContent=allPastes.length;
+  document.getElementById('sc-popular').textContent=allPastes.length;
+  document.getElementById('sc-commented').textContent=allPastes.length;
+  document.getElementById('sc-favourited').textContent=allPastes.length;
+
+  renderPinned(allPastes);
+  renderTab(currentTab,allPastes);
+}
+
+function renderPinned(pastes){
+  const pinned=pastes.filter(p=>p.pinned);
+  document.getElementById('pinned-badge').textContent=pinned.length;
+  const el=document.getElementById('pinned-list');
+  if(!pinned.length){
+    el.innerHTML='<div class="state-row"><span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7" cy="5" r="3"/><line x1="7" y1="8" x2="7" y2="13"/></svg></span>no pinned pastes</div>';
+    return;
+  }
+  el.innerHTML=pinned.map(p=>rowHTML(p,true)).join('');
+}
+
+function renderTab(tab,pastes){
+  currentTab=tab;
+  ['recent','popular','commented','favourited'].forEach(t=>{
+    const b=document.getElementById('tab-'+t);
+    if(b) b.className='btn'+(t===tab?' t-active':'');
+  });
+  setSBActive(tab);
+  const labels={recent:'Recent Pastes',popular:'Most Viewed',commented:'Most Discussed',favourited:'Most Favourited'};
+  document.getElementById('tab-label').textContent=labels[tab]||'Pastes';
+
+  let sorted=[...pastes.filter(p=>!p.pinned)];
+  if(tab==='popular')   sorted.sort((a,b)=>(b.views||0)-(a.views||0));
+  if(tab==='commented') sorted.sort((a,b)=>(b.comment_count||0)-(a.comment_count||0));
+  if(tab==='favourited')sorted.sort((a,b)=>(b.favourites||0)-(a.favourites||0));
+
+  document.getElementById('main-badge').textContent=sorted.length;
+  const el=document.getElementById('main-list');
+  if(!sorted.length){
+    el.innerHTML='<div class="state-row"><span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="7" cy="7" r="5.5"/><line x1="7" y1="5" x2="7" y2="7.5"/><circle cx="7" cy="9.5" r=".6" fill="currentColor"/></svg></span>no pastes yet</div>';
+    return;
+  }
+  el.innerHTML=sorted.map(p=>rowHTML(p,false)).join('');
+}
+
+function rowHTML(p,pin){
+  const lockIco = p.password_hash
+    ? `<span class="ic ic-lock" style="width:12px;height:12px"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="6" width="8" height="7" rx=".5"/><path d="M4.5 6V4.5a2.5 2.5 0 0 1 5 0V6"/></svg></span>` : '';
+  const pinIco  = pin
+    ? `<span class="ic ic-pin" style="width:12px;height:12px;color:var(--pin)"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="7" cy="5" r="3"/><line x1="7" y1="8" x2="7" y2="13"/></svg></span>` : '';
+  return `<div class="pr" onclick="loadPaste('${esc(p.id)}')">
+    <span class="pr-ttl">${pinIco}${lockIco}<span class="pr-ttl-txt">${esc(p.title||'untitled')}</span></span>
+    <span class="pr-auth">${esc(p.author||'anon')}</span>
+    <span class="pr-date">${relTime(p.created_at)}</span>
+    <span class="pr-num"><span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 7s2.5-4.5 6-4.5S13 7 13 7s-2.5 4.5-6 4.5S1 7 1 7z"/><circle cx="7" cy="7" r="1.5"/></svg></span>${(p.views||0).toLocaleString()}</span>
+    <span class="pr-num"><span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M1 1h12v8H8l-3 3v-3H1z"/></svg></span>${(p.comment_count||0).toLocaleString()}</span>
+    <span class="pr-num"><span class="ic"><svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.2"><polygon points="7,1.5 8.8,5.2 13,5.7 10,8.5 10.8,12.5 7,10.4 3.2,12.5 4,8.5 1,5.7 5.2,5.2"/></svg></span>${(p.favourites||0).toLocaleString()}</span>
+  </div>`;
+}
+
+// SEARCH
+function syncSearch(q){
+  document.getElementById('main-si').value=q;
+  handleSearch(q);
+  if(q) showView('home');
+}
+function handleSearch(q){
+  q=q.trim().toLowerCase();
+  if(!q){document.getElementById('search-res').textContent='';renderPinned(allPastes);renderTab(currentTab,allPastes);return;}
+  const res=allPastes.filter(p=>(p.title||'').toLowerCase().includes(q)||(p.author||'').toLowerCase().includes(q));
+  document.getElementById('search-res').textContent=res.length+' result'+(res.length===1?'':'s');
+  renderPinned(res);
+  renderTab(currentTab,res);
+}
+function clearSearch(){
+  document.getElementById('main-si').value='';
+  document.getElementById('top-si').value='';
+  document.getElementById('search-res').textContent='';
+  renderPinned(allPastes);
+  renderTab(currentTab,allPastes);
+}
+
+// TAB
+function setTab(t){renderTab(t,allPastes);}
+
+// NEW PASTE
+function goNew(){
+  history.pushState({},'','/new');
+  showView('new');
+  document.getElementById('new-ta').focus();
+}
+const newTa=document.getElementById('new-ta');
+newTa.addEventListener('input',()=>{
+  const v=newTa.value;
+  document.getElementById('e-chars').textContent=v.length.toLocaleString()+' chars';
+  document.getElementById('e-words').textContent=(v.trim()===''?0:v.trim().split(/\s+/).length).toLocaleString()+' words';
+  document.getElementById('e-lines').textContent=(v===''?0:v.split('\n').length).toLocaleString()+' lines';
+});
+async function submitPaste(){
+  const content=document.getElementById('new-ta').value.trim();
+  if(!content){toast('nothing to submit','err');return;}
+  const title =document.getElementById('new-title').value.trim()||'untitled';
+  const author=document.getElementById('new-author').value.trim()||'anon';
+  const pass  =document.getElementById('new-pass').value;
+  const priv  =document.getElementById('new-private').checked;
+  const expSec=parseInt(document.getElementById('new-expire').value)||null;
+  load(true);
+  const id=uid(8);
+  const password_hash=pass?await sha256(pass):null;
+  const expires_at=expSec?new Date(Date.now()+expSec*1000).toISOString():null;
+  const {error}=await db.from('pastes').insert([{id,title,author,content,password_hash,is_private:priv,expires_at,views:0,favourites:0,pinned:false}]);
+  load(false);
+  if(error){toast(error.message,'err');return;}
+  ['new-ta','new-title','new-author','new-pass'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('new-private').checked=false;
+  document.getElementById('new-expire').value='';
+  toast('paste created','ok');
+  loadPaste(id);
+}
+
+// LOAD PASTE
+async function loadPaste(id){
+  load(true);
+  history.pushState({},'/','/'+id);
+  const {data,error}=await db.from('pastes').select('*').eq('id',id).single();
+  if(error||!data){load(false);toast('not found','err');goHome();return;}
+  if(data.expires_at&&new Date(data.expires_at)<new Date()){load(false);toast('expired','err');goHome();return;}
+  currentPaste=data;
+  if(data.password_hash){
+    load(false);
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    document.getElementById('view-locked').classList.add('active');
+    document.getElementById('unlock-pass').value='';
+    document.getElementById('unlock-pass').focus();
+    return;
+  }
+  await renderPasteView(data);
+  load(false);
+}
+
+async function tryUnlock(){
+  const pass=document.getElementById('unlock-pass').value; if(!pass)return;
+  const hash=await sha256(pass);
+  if(hash===currentPaste.password_hash){
+    document.getElementById('view-locked').classList.remove('active');
+    await renderPasteView(currentPaste); toast('unlocked','ok');
+  } else {toast('wrong password','err');document.getElementById('unlock-pass').value='';}
+}
+document.getElementById('unlock-pass').addEventListener('keydown',e=>{if(e.key==='Enter')tryUnlock();});
+
+async function renderPasteView(data){
+  showView('paste');
+  document.title=(data.title||'untitled')+' — doxbin';
+  document.getElementById('pv-title').textContent  =data.title||'untitled';
+  document.getElementById('pv-author').textContent =data.author||'anon';
+  document.getElementById('pv-views').textContent  =((data.views||0)+1).toLocaleString();
+  document.getElementById('pv-date').textContent   =absDate(data.created_at);
+  document.getElementById('fav-count').textContent =(data.favourites||0).toLocaleString();
+  const isFav=favs.includes(data.id);
+  document.getElementById('fav-btn').className='btn'+(isFav?' fav-on':'');
+  if(data.expires_at){
+    document.getElementById('pv-exp-wrap').style.display='';
+    document.getElementById('pv-expire').textContent=absDate(data.expires_at);
+  } else { document.getElementById('pv-exp-wrap').style.display='none'; }
+  // Line nums + code
+  const lines=(data.content||'').split('\n');
+  document.getElementById('pv-lnum').textContent=lines.map((_,i)=>String(i+1).padStart(4,' ')).join('\n');
+  document.getElementById('pv-code').textContent=data.content||'';
+  // increment view
+  db.from('pastes').update({views:(data.views||0)+1}).eq('id',data.id).then(()=>{});
+  // comments
+  await loadComments(data.id);
+}
+
+// COMMENTS
+async function loadComments(pid){
+  const {data,error}=await db.from('comments').select('*').eq('paste_id',pid).order('created_at',{ascending:true});
+  const list=document.getElementById('cmt-list');
+  const cnt =document.getElementById('pv-cmt-count');
+  const lbl =document.getElementById('cmt-label');
+  if(error||!data){list.innerHTML='<div class="cmt-no">failed to load</div>';return;}
+  cnt.textContent=(data.length).toLocaleString();
+  lbl.textContent=data.length+' comment'+(data.length===1?'':'s');
+  if(!data.length){list.innerHTML='<div class="cmt-no">no comments yet — be the first.</div>';return;}
+  list.innerHTML=data.map(c=>`
+    <div class="cmt-item">
+      <div class="cmt-av">${esc((c.author||'A')[0].toUpperCase())}</div>
+      <div class="cmt-body">
+        <div class="cmt-meta"><span>${esc(c.author||'anon')}</span><span>${relTime(c.created_at)}</span></div>
+        <div class="cmt-txt">${esc(c.content)}</div>
+      </div>
+    </div>`).join('');
+}
+async function submitComment(){
+  if(!currentPaste)return;
+  const name=document.getElementById('cmt-name').value.trim()||'anon';
+  const text=document.getElementById('cmt-text').value.trim();
+  if(!text){toast('empty comment','err');return;}
+  const {error}=await db.from('comments').insert([{paste_id:currentPaste.id,author:name,content:text}]);
+  if(error){toast(error.message,'err');return;}
+  document.getElementById('cmt-text').value='';
+  toast('posted','ok');
+  await loadComments(currentPaste.id);
+}
+document.getElementById('cmt-text').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();submitComment();}});
+
+// FAVOURITES
+async function toggleFav(){
+  if(!currentPaste)return;
+  const id=currentPaste.id;
+  const idx=favs.indexOf(id); const isFav=idx>-1;
+  if(isFav) favs.splice(idx,1); else favs.push(id);
+  localStorage.setItem('dox_favs',JSON.stringify(favs));
+  const nc=Math.max(0,(currentPaste.favourites||0)+(isFav?-1:1));
+  currentPaste.favourites=nc;
+  document.getElementById('fav-count').textContent=nc.toLocaleString();
+  document.getElementById('fav-btn').className='btn'+(isFav?'':' fav-on');
+  await db.from('pastes').update({favourites:nc}).eq('id',id);
+}
+
+// PASTE ACTIONS
+function copyPaste(){
+  if(!currentPaste)return;
+  navigator.clipboard.writeText(currentPaste.content).then(()=>toast('copied')).catch(()=>toast('failed','err'));
+}
+function rawPaste(){
+  if(!currentPaste)return;
+  const u=URL.createObjectURL(new Blob([currentPaste.content],{type:'text/plain'}));
+  window.open(u,'_blank'); setTimeout(()=>URL.revokeObjectURL(u),2000);
+}
+function downloadPaste(){
+  if(!currentPaste)return;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([currentPaste.content],{type:'text/plain'}));
+  a.download=(currentPaste.title||'paste')+'.txt'; a.click();
+  URL.revokeObjectURL(a.href); toast('saved');
+}
+async function deletePaste(){
+  if(!currentPaste||!confirm('Delete this paste permanently?'))return;
+  load(true);
+  await db.from('comments').delete().eq('paste_id',currentPaste.id);
+  const {error}=await db.from('pastes').delete().eq('id',currentPaste.id);
+  load(false);
+  if(error){toast(error.message,'err');return;}
+  currentPaste=null; toast('deleted'); goHome();
+}
+
+// ROUTING
+function route(){
+  const path=window.location.pathname.replace(/^\//,'');
+  if(!path||path===''){showView('home');loadAll();}
+  else if(path==='new'){showView('new');document.getElementById('new-ta').focus();}
+  else{showView('home');loadAll();loadPaste(path);}
+}
+window.addEventListener('popstate',route);
+route();
+</script>
+</body>
+</html>
